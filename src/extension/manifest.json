@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Meeting Reminder Join",
+  "version": "0.1.7",
+  "description": "Adds meeting join actions to Thunderbird calendar reminders.",
+  "permissions": [
+    "alarms",
+    "clipboardWrite",
+    "notifications",
+    "tabs"
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "64": "icons/icon-64.png",
+    "128": "icons/icon-128.png"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "meeting-reminder-join@thunderbird-meeting-toolkit.local",
+      "strict_min_version": "128.0"
+    }
+  },
+  "experiment_apis": {
+    "calendar_items": {
+      "schema": "experiments/calendar/schema/calendar-items.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "experiments/calendar/parent/ext-calendar-items.js",
+        "events": ["startup"],
+        "paths": [["calendar", "items"]]
+      }
+    }
+  }
+}

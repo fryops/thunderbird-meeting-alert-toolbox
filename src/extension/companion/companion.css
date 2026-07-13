@@ -1,0 +1,215 @@
+:root {
+  color-scheme: light dark;
+  --panel-bg: #f7f7fb;
+  --panel-border: #d7d9e2;
+  --row-bg: #ffffff;
+  --row-border: #dfe2ea;
+  --text-primary: #1f2430;
+  --text-secondary: #5d6575;
+  --button-bg: #f5f7fb;
+  --button-border: #cfd5e3;
+  --button-primary-bg: #1261d8;
+  --button-primary-border: #0d55c3;
+  --button-primary-text: #ffffff;
+  --provider-google-meet: #188038;
+  --provider-zoom: #2d8cff;
+  --provider-teams: #6264a7;
+  --provider-webex: #00a0d2;
+  --provider-goto: #f68d2e;
+  --provider-slack: #611f69;
+  --provider-discord: #5865f2;
+  --provider-jitsi: #0f9d58;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --panel-bg: #1f232b;
+    --panel-border: #363c49;
+    --row-bg: #282d36;
+    --row-border: #3b4350;
+    --text-primary: #f2f4f8;
+    --text-secondary: #b2bac9;
+    --button-bg: #303744;
+    --button-border: #4b5568;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 360px;
+  margin: 0;
+  color: var(--text-primary);
+  background: var(--panel-bg);
+  font: 13px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.reminder-panel {
+  max-width: 420px;
+  margin: 0 auto;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: 0 12px 36px rgb(0 0 0 / 16%);
+}
+
+.reminder-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.reminder-panel__header h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.reminder-count {
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: var(--row-bg);
+  text-align: center;
+  font-weight: 650;
+}
+
+.reminder-list {
+  padding: 10px;
+}
+
+.reminder-row {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--row-border);
+  border-radius: 10px;
+  background: var(--row-bg);
+}
+
+.reminder-row__summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reminder-row h2 {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reminder-row p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.reminder-relative {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.provider-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid var(--row-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--row-bg) 86%, var(--panel-bg));
+}
+
+.provider-chip {
+  display: inline-flex;
+  align-items: center;
+  min-width: 130px;
+  gap: 8px;
+  font-weight: 650;
+}
+
+.provider-chip__icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 6px;
+  color: #ffffff;
+  background: var(--provider-google-meet);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.provider-chip[data-provider-id="zoom"] .provider-chip__icon {
+  background: var(--provider-zoom);
+}
+
+.provider-chip[data-provider-id="teams"] .provider-chip__icon {
+  background: var(--provider-teams);
+}
+
+.provider-chip[data-provider-id="webex"] .provider-chip__icon {
+  background: var(--provider-webex);
+}
+
+.provider-chip[data-provider-id="goto"] .provider-chip__icon {
+  background: var(--provider-goto);
+}
+
+.provider-chip[data-provider-id="slack"] .provider-chip__icon {
+  background: var(--provider-slack);
+}
+
+.provider-chip[data-provider-id="discord"] .provider-chip__icon {
+  background: var(--provider-discord);
+}
+
+.provider-chip[data-provider-id="jitsi"] .provider-chip__icon {
+  background: var(--provider-jitsi);
+}
+
+select {
+  min-width: 0;
+  flex: 1;
+  color: var(--text-primary);
+  border: 1px solid var(--button-border);
+  border-radius: 6px;
+  background: var(--button-bg);
+  padding: 5px 8px;
+}
+
+.reminder-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button {
+  border: 1px solid var(--button-border);
+  border-radius: 7px;
+  color: var(--text-primary);
+  background: var(--button-bg);
+  padding: 7px 11px;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.button:hover {
+  filter: brightness(0.97);
+}
+
+.button--primary {
+  border-color: var(--button-primary-border);
+  color: var(--button-primary-text);
+  background: var(--button-primary-bg);
+}
+
+.button--ghost {
+  margin-left: auto;
+}

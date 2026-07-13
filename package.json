@@ -1,0 +1,21 @@
+{
+  "name": "thunderbird-meeting-toolkit",
+  "version": "0.1.7",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "package": "npm run build && node scripts/package-xpi.mjs",
+    "install:thunderbird": "bash scripts/install-in-thunderbird.sh",
+    "uninstall:thunderbird": "bash scripts/install-in-thunderbird.sh --uninstall"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

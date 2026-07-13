@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendar Reminders</title>
+    <link rel="stylesheet" href="./companion.css" />
+  </head>
+  <body>
+    <main class="reminder-panel" aria-labelledby="reminder-heading">
+      <header class="reminder-panel__header">
+        <h1 id="reminder-heading">Calendar Reminders</h1>
+        <span class="reminder-count" aria-label="1 meeting reminder">1</span>
+      </header>
+
+      <section id="reminder-list" class="reminder-list" aria-label="Meeting reminders">
+        <article class="reminder-row" data-provider-id="google-meet">
+          <div class="reminder-row__summary">
+            <div>
+              <h2 id="reminder-title">Sprint Planning</h2>
+              <p id="reminder-time">Today · 2:00-2:30 PM</p>
+            </div>
+            <span id="reminder-relative" class="reminder-relative">in 5 min</span>
+          </div>
+
+          <label class="provider-picker" for="provider-select">
+            <span id="provider-chip" class="provider-chip" data-provider-id="google-meet">
+              <span id="provider-icon" class="provider-chip__icon" aria-hidden="true">G</span>
+              <span id="provider-name">Google Meet</span>
+            </span>
+            <select id="provider-select" aria-label="Meeting link alternatives">
+              <option value="https://meet.google.com/abc-defg-hij">Google Meet</option>
+              <option value="https://zoom.us/j/123456789">Zoom</option>
+            </select>
+          </label>
+
+          <div class="reminder-row__actions" aria-label="Reminder actions">
+            <button id="join-button" class="button button--primary" type="button">
+              Join Meeting
+            </button>
+            <button id="copy-button" class="button" type="button">Copy</button>
+            <button id="dismiss-button" class="button button--ghost" type="button">
+              Dismiss
+            </button>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module" src="./companion.js"></script>
+  </body>
+</html>
