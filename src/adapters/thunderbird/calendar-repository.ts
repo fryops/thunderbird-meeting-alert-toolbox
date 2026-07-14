@@ -86,12 +86,16 @@ export function mapThunderbirdEvent(
     nestedString(event.body, "html"),
     nestedString(event.description, "html"),
   );
+  const calendarId = firstString(event.calendarId);
+  const instance = firstString(event.instance);
 
   if (end) mapped.end = end;
   if (location) mapped.location = location;
   if (description) mapped.description = description;
   if (plainBody) mapped.plainBody = plainBody;
   if (htmlBody) mapped.htmlBody = htmlBody;
+  if (calendarId) mapped.calendarId = calendarId;
+  if (instance) mapped.instance = instance;
 
   return mapped;
 }
@@ -127,6 +131,11 @@ function mapIcsCalendarItem(
     mapped.description = parsed.description;
     mapped.plainBody = parsed.description;
   }
+
+  const calendarId = firstString(event.calendarId);
+  const instance = firstString(event.instance);
+  if (calendarId) mapped.calendarId = calendarId;
+  if (instance) mapped.instance = instance;
 
   return mapped;
 }

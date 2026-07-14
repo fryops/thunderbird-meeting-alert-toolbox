@@ -2,7 +2,7 @@
 
 Meeting Reminder Join is a Thunderbird MailExtension that adds meeting-aware actions to calendar reminders. When a reminder fires, the extension reads the event's location and description/body fields, detects supported meeting links, and presents a **Join Meeting** action with **Copy Link** support.
 
-The extension is read-only with respect to calendars: it never creates, edits, deletes, accepts, declines, or otherwise modifies calendar events or invitations. If a reminder does not contain a supported meeting link, the extension stays out of the way.
+The extension does not create, edit, delete, accept, or decline calendar events or invitations. When a supported meeting link is detected, it may acknowledge (dismiss) that event’s Thunderbird alarm so the native reminder dialog does not stay open beside the companion window. If a reminder does not contain a supported meeting link, the extension stays out of the way.
 
 ## Project Overview
 
@@ -16,7 +16,7 @@ The reminder presentation is intentionally hybrid:
 
 ## Companion Reminder Window
 
-When a reminder fires for an event with a supported meeting link, Meeting Reminder Join opens this companion window alongside Thunderbird’s native reminder:
+When a reminder fires for an event with a supported meeting link, Meeting Reminder Join opens this companion window and suppresses Thunderbird’s native reminder dialog for that meeting:
 
 ![Companion reminder window showing a Zoom meeting with Join Meeting, Copy, and Dismiss actions](docs/images/companion-reminder-window.png)
 
@@ -135,7 +135,7 @@ Key files:
 | Node.js **20+** | Needed to install deps and build the extension |
 | A calendar with events you can remind | Local or remote calendar is fine |
 
-This extension is **read-only**: it never creates or changes calendar events. A disposable Thunderbird profile is still useful while iterating, so a broken temporary add-on load does not affect your daily mail profile.
+This extension does **not** create or change calendar events themselves. For meeting-link reminders it may dismiss Thunderbird’s native alarm acknowledgment so only the companion Join window is shown. A disposable Thunderbird profile is still useful while iterating, so a broken temporary add-on load does not affect your daily mail profile.
 
 ### Create or use a test profile (optional)
 
@@ -446,7 +446,8 @@ Calendar reminders do not trigger the Join window:
   - `ReminderWatcher started`
   - periodic `ReminderWatcher poll complete`
 - If `hasAlarms` is false, remove the add-on, reinstall, and restart.
-- The native Thunderbird reminder dialog will still appear; the companion Join window is an additional surface when a meeting link is detected.
+- For supported meeting links, Thunderbird’s native reminder dialog is suppressed; the companion Join window is the reminder surface.
+- Events without a supported meeting link continue to use Thunderbird’s native reminder only.
 - Events must have a reminder/alarm configured (or a VALARM / start-15m fallback), and the Location or Description must contain a supported meeting URL.
 
 ## Manual Smoke Checklist

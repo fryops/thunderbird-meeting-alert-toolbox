@@ -32,6 +32,7 @@ describe("CompanionReminderPresenter", () => {
         remove: async (windowId) => {
           calls.push(`remove:${windowId}`);
         },
+        getAll: async () => [],
       },
     });
 
@@ -39,6 +40,39 @@ describe("CompanionReminderPresenter", () => {
     await presenter.present({ ...action, eventId: "e2" });
 
     expect(calls).toEqual(["create", "remove:1", "create"]);
+  });
+
+  it("closes all companion popups found via getAll", async () => {
+    const removedWindowIds: number[] = [];
+    const presenter = new CompanionReminderPresenter({
+      runtime: {
+        getURL: (path) => `moz-extension://extension/${path}`,
+      },
+      windows: {
+        create: async () => ({ id: 99 }),
+        remove: async (windowId) => {
+          removedWindowIds.push(windowId);
+        },
+        getAll: async () => [
+          {
+            id: 11,
+            tabs: [{ url: "moz-extension://x/companion/companion.html?payload=a" }],
+          },
+          {
+            id: 12,
+            tabs: [{ url: "https://example.com" }],
+          },
+          {
+            id: 13,
+            tabs: [{ url: "moz-extension://x/companion/companion.html?payload=b" }],
+          },
+        ],
+      },
+    });
+
+    await presenter.present(action);
+
+    expect(removedWindowIds).toEqual([11, 13]);
   });
 
   it("closes the tracked companion window when hidden", async () => {
@@ -52,6 +86,7 @@ describe("CompanionReminderPresenter", () => {
         remove: async (windowId) => {
           removedWindowIds.push(windowId);
         },
+        getAll: async () => [],
       },
     });
 

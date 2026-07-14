@@ -8,6 +8,11 @@ type WindowsCreateOptions = {
   height: number;
 };
 
+type WindowInfo = {
+  id?: number;
+  tabs?: Array<{ url?: string }>;
+};
+
 type ThunderbirdCompanionApi = {
   runtime?: {
     getURL?: (path: string) => string;
@@ -15,8 +20,14 @@ type ThunderbirdCompanionApi = {
   windows?: {
     create?: (options: WindowsCreateOptions) => Promise<unknown>;
     remove?: (windowId: number) => Promise<void>;
+    getAll?: (options?: {
+      populate?: boolean;
+      windowTypes?: Array<"normal" | "popup" | "panel" | "app" | "devtools">;
+    }) => Promise<WindowInfo[]>;
   };
 };
+
+const COMPANION_PATH_MARKER = "companion/companion.html";
 
 export class CompanionReminderPresenter implements ReminderPresenter {
   private companionWindowId: number | undefined;
@@ -41,17 +52,10 @@ export class CompanionReminderPresenter implements ReminderPresenter {
       );
     }
 
+    await this.closeExistingCompanions(removeWindow);
+
     const companionUrl = new URL(getURL("companion/companion.html"));
     companionUrl.searchParams.set("payload", JSON.stringify(serializeAction(action)));
-
-    if (this.companionWindowId !== undefined) {
-      try {
-        await removeWindow(this.companionWindowId);
-      } catch (error) {
-        console.warn("Unable to close previous companion window", error);
-      }
-      this.companionWindowId = undefined;
-    }
 
     try {
       const created = await createWindow({
@@ -73,10 +77,42 @@ export class CompanionReminderPresenter implements ReminderPresenter {
 
   async hide(): Promise<void> {
     const removeWindow = this.thunderbird.windows?.remove;
-    if (!removeWindow || this.companionWindowId === undefined) return;
+    if (!removeWindow) return;
+    await this.closeExistingCompanions(removeWindow);
+  }
 
-    await removeWindow(this.companionWindowId);
+  private async closeExistingCompanions(
+    removeWindow: (windowId: number) => Promise<void>,
+  ): Promise<void> {
+    const tracked = this.companionWindowId;
     this.companionWindowId = undefined;
+
+    const ids = new Set<number>();
+    if (tracked !== undefined) ids.add(tracked);
+
+    const getAll = this.thunderbird.windows?.getAll;
+    if (getAll) {
+      try {
+        const windows = await getAll({ populate: true, windowTypes: ["popup"] });
+        for (const window of windows) {
+          if (typeof window.id !== "number") continue;
+          const isCompanion = window.tabs?.some((tab) =>
+            typeof tab.url === "string" && tab.url.includes(COMPANION_PATH_MARKER),
+          );
+          if (isCompanion) ids.add(window.id);
+        }
+      } catch (error) {
+        console.warn("Unable to enumerate companion windows", error);
+      }
+    }
+
+    for (const windowId of ids) {
+      try {
+        await removeWindow(windowId);
+      } catch (error) {
+        console.warn("Unable to close companion window", { windowId, error });
+      }
+    }
   }
 }
 

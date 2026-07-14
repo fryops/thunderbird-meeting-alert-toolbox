@@ -362,7 +362,7 @@ echo "       /Applications/Thunderbird.app/Contents/MacOS/thunderbird -P $(basen
 echo "     Or: npm run install:thunderbird -- --profile $(basename "$PROFILE_DIR") --launch"
 echo "  3. Confirm 'Meeting Reminder Join' appears under Tools → Add-ons and Themes."
 echo "  4. In about:debugging → Inspect, confirm logs show:"
-echo "       hasCalendarItemsPing: true, hasFindDueReminders: true, ReminderWatcher ping { version: \"0.1.6\", build: \"due-v1\" }"
+echo "       hasCalendarItemsPing: true, hasFindDueReminders: true, ReminderWatcher ping { version: \"0.1.8\", build: \"due-v2-suppress\" }"
 echo "  5. After code changes: rebuild/install, fully quit, then relaunch with -purgecaches."
 echo
 echo "If Thunderbird still won't load it, use temporary install instead:"
