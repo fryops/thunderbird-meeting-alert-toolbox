@@ -14,6 +14,14 @@ The reminder presentation is intentionally hybrid:
 - The companion window is the fallback when native presentation is unavailable.
 - In v1, `NativeReminderPresenter.canPresent()` returns `false`, so supported meeting reminders use the companion window.
 
+## Companion Reminder Window
+
+When a reminder fires for an event with a supported meeting link, Meeting Reminder Join opens this companion window alongside Thunderbird’s native reminder:
+
+![Companion reminder window showing a Zoom meeting with Join Meeting, Copy, and Dismiss actions](docs/images/companion-reminder-window.png)
+
+The window shows the event title and time, the detected provider, and **Join Meeting** / **Copy** / **Dismiss** actions. If more than one meeting link is found, a provider picker appears so you can choose which link to use.
+
 ## Features
 
 - Detects meeting links in calendar event location and description/body text.
@@ -42,77 +50,13 @@ Provider support lives in `src/domain/providers/`. The default set is exported f
 
 ## Architecture Diagram
 
-```mermaid
-flowchart TB
-  subgraph External["External Systems"]
-    TB["Thunderbird MailExtension APIs"]
-    CLIP["Browser Clipboard"]
-    USER["Reminder User"]
-  end
+![Meeting Reminder Join hexagonal architecture diagram](docs/images/architecture.svg)
 
-  subgraph Adapters["Adapters"]
-    CAL["ThunderbirdCalendarRepository"]
-    HYBRID["HybridReminderPresenter"]
-    NATIVE["NativeReminderPresenter"]
-    COMPANION["CompanionReminderPresenter"]
-    BROWSER["ThunderbirdBrowserLauncher"]
-    CLIPBOARD["ThunderbirdClipboardService"]
-  end
+Source: [`docs/images/architecture.dot`](docs/images/architecture.dot) (Graphviz). To regenerate:
 
-  subgraph Ports["Ports"]
-    CALPORT["CalendarRepository"]
-    PRESENTPORT["ReminderPresenter"]
-    BROWSERPORT["BrowserLauncher"]
-    CLIPPORT["ClipboardService"]
-  end
-
-  subgraph Application["Application Use Cases"]
-    HANDLE["HandleReminder"]
-    DETECT["DetectMeetingLink"]
-    RESOLVE["ResolveReminderAction"]
-    JOIN["JoinMeeting"]
-    COPY["CopyMeetingLink"]
-  end
-
-  subgraph Domain["Domain Core"]
-    EVENT["CalendarEventFields"]
-    LINK["MeetingLink"]
-    PROVIDER["MeetingProvider"]
-    REGISTRY["MeetingProviderRegistry"]
-    RESULT["MeetingDetectionResult"]
-  end
-
-  subgraph Composition["Composition Root"]
-    ROOT["createApp()"]
-    BG["extension/background.ts"]
-  end
-
-  TB --> CAL
-  TB --> HYBRID
-  TB --> BROWSER
-  CLIP --> CLIPBOARD
-  USER --> COMPANION
-  HYBRID --> NATIVE
-  HYBRID --> COMPANION
-  CAL -. implements .-> CALPORT
-  HYBRID -. implements .-> PRESENTPORT
-  BROWSER -. implements .-> BROWSERPORT
-  CLIPBOARD -. implements .-> CLIPPORT
-  HANDLE --> CALPORT
-  HANDLE --> DETECT
-  HANDLE --> RESOLVE
-  HANDLE --> PRESENTPORT
-  JOIN --> BROWSERPORT
-  COPY --> CLIPPORT
-  DETECT --> REGISTRY
-  REGISTRY --> PROVIDER
-  DETECT --> EVENT
-  DETECT --> RESULT
-  RESOLVE --> LINK
-  ROOT --> Adapters
-  ROOT --> Application
-  ROOT --> Domain
-  BG --> ROOT
+```bash
+dot -Tsvg -o docs/images/architecture.svg docs/images/architecture.dot
+dot -Tpng -Gdpi=150 -o docs/images/architecture.png docs/images/architecture.dot
 ```
 
 ## Clean Architecture
@@ -164,6 +108,7 @@ scripts/
   install-in-thunderbird.sh Builds and registers the add-on in a Thunderbird profile
   package-xpi.mjs          Builds dist/meeting-reminder-join-<version>.xpi
 docs/
+  images/                  README screenshots and architecture diagram assets
   superpowers/specs/       Design and implementation planning notes
 dist/
   extension/               Generated loadable extension output
@@ -174,6 +119,8 @@ Key files:
 - `src/extension/manifest.json` declares the Thunderbird extension metadata and permissions.
 - `src/extension/background.ts` is the extension runtime entry point.
 - `src/extension/companion/` contains the fallback reminder window UI.
+- `docs/images/companion-reminder-window.png` shows the companion reminder UI used in this README.
+- `docs/images/architecture.dot` is the Graphviz source for the architecture diagram.
 - `scripts/install-in-thunderbird.sh` installs the built add-on into a local Thunderbird profile.
 - `esbuild.config.mjs` bundles TypeScript and copies static extension assets into `dist/extension/`.
 - `package.json` defines test, typecheck, build, package, and install scripts.

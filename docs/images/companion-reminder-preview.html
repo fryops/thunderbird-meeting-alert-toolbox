@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendar Reminders</title>
+    <link rel="stylesheet" href="../../src/extension/companion/companion.css" />
+    <style>
+      :root {
+        color-scheme: light;
+        --panel-bg: #f7f7fb;
+        --panel-border: #d7d9e2;
+        --row-bg: #ffffff;
+        --row-border: #dfe2ea;
+        --text-primary: #1f2430;
+        --text-secondary: #5d6575;
+        --button-bg: #f5f7fb;
+        --button-border: #cfd5e3;
+      }
+      html,
+      body {
+        background: #d8dde8;
+      }
+      body {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 28px;
+      }
+      .frame {
+        width: 400px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 18px 48px rgb(0 0 0 / 28%);
+      }
+      .reminder-panel {
+        margin: 0;
+        max-width: none;
+      }
+      #provider-select {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <main class="reminder-panel">
+        <header class="reminder-panel__header">
+          <h1>Calendar Reminders</h1>
+          <span class="reminder-count">1</span>
+        </header>
+        <section class="reminder-list">
+          <article class="reminder-row" data-provider-id="zoom">
+            <div class="reminder-row__summary">
+              <div>
+                <h2>Weekly Sync</h2>
+                <p>Today · 2:00–2:30 PM</p>
+              </div>
+              <span class="reminder-relative">in 5 min</span>
+            </div>
+            <label class="provider-picker">
+              <span class="provider-chip" data-provider-id="zoom">
+                <span class="provider-chip__icon" aria-hidden="true">Z</span>
+                <span>Zoom</span>
+              </span>
+              <select id="provider-select" hidden disabled aria-hidden="true">
+                <option selected>Zoom</option>
+              </select>
+            </label>
+            <div class="reminder-row__actions">
+              <button class="button button--primary" type="button">Join Meeting</button>
+              <button class="button" type="button">Copy</button>
+              <button class="button button--ghost" type="button">Dismiss</button>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

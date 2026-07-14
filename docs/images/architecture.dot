@@ -1,0 +1,128 @@
+// Meeting Reminder Join — Clean/Hexagonal architecture
+digraph MeetingReminderJoinArchitecture {
+  graph [
+    layout=dot
+    rankdir=TB
+    splines=true
+    bgcolor="white"
+    fontname="Helvetica"
+    fontsize=12
+    pad="0.4"
+    nodesep="0.4"
+    ranksep="0.6"
+    label="Meeting Reminder Join Architecture"
+    labelloc=t
+  ];
+  node [
+    shape=box
+    style="rounded,filled"
+    fontname="Helvetica"
+    fontsize=10
+    color="#94a3b8"
+    fillcolor="#f8fafc"
+  ];
+  edge [
+    color="#64748b"
+    fontname="Helvetica"
+    fontsize=9
+  ];
+
+  subgraph cluster_external {
+    label="External Systems";
+    style="rounded,filled";
+    color="#cbd5e1";
+    fillcolor="#f1f5f9";
+    TB [label="Thunderbird\nMailExtension APIs", fillcolor="#e2e8f0"];
+    CLIP [label="Browser Clipboard", fillcolor="#e2e8f0"];
+    USER [label="Reminder User", fillcolor="#e2e8f0"];
+  }
+
+  subgraph cluster_adapters {
+    label="Adapters";
+    style="rounded,filled";
+    color="#93c5fd";
+    fillcolor="#eff6ff";
+    CAL [label="ThunderbirdCalendarRepository", fillcolor="#dbeafe"];
+    HYBRID [label="HybridReminderPresenter", fillcolor="#dbeafe"];
+    NATIVE [label="NativeReminderPresenter", fillcolor="#dbeafe"];
+    COMPANION [label="CompanionReminderPresenter", fillcolor="#dbeafe"];
+    BROWSER [label="ThunderbirdBrowserLauncher", fillcolor="#dbeafe"];
+    CLIPBOARD [label="ThunderbirdClipboardService", fillcolor="#dbeafe"];
+  }
+
+  subgraph cluster_ports {
+    label="Ports";
+    style="rounded,filled";
+    color="#fbbf24";
+    fillcolor="#fffbeb";
+    CALPORT [label="CalendarRepository", shape=component, fillcolor="#fef3c7"];
+    PRESENTPORT [label="ReminderPresenter", shape=component, fillcolor="#fef3c7"];
+    BROWSERPORT [label="BrowserLauncher", shape=component, fillcolor="#fef3c7"];
+    CLIPPORT [label="ClipboardService", shape=component, fillcolor="#fef3c7"];
+  }
+
+  subgraph cluster_application {
+    label="Application Use Cases";
+    style="rounded,filled";
+    color="#86efac";
+    fillcolor="#f0fdf4";
+    HANDLE [label="HandleReminder", fillcolor="#dcfce7"];
+    DETECT [label="DetectMeetingLink", fillcolor="#dcfce7"];
+    RESOLVE [label="ResolveReminderAction", fillcolor="#dcfce7"];
+    JOIN [label="JoinMeeting", fillcolor="#dcfce7"];
+    COPY [label="CopyMeetingLink", fillcolor="#dcfce7"];
+  }
+
+  subgraph cluster_domain {
+    label="Domain Core";
+    style="rounded,filled";
+    color="#e879f9";
+    fillcolor="#fdf4ff";
+    EVENT [label="CalendarEventFields", fillcolor="#fae8ff"];
+    LINK [label="MeetingLink", fillcolor="#fae8ff"];
+    PROVIDER [label="MeetingProvider", fillcolor="#fae8ff"];
+    REGISTRY [label="MeetingProviderRegistry", fillcolor="#fae8ff"];
+    RESULT [label="MeetingDetectionResult", fillcolor="#fae8ff"];
+  }
+
+  subgraph cluster_composition {
+    label="Composition Root";
+    style="rounded,filled";
+    color="#fdba74";
+    fillcolor="#fff7ed";
+    ROOT [label="createApp()", fillcolor="#ffedd5"];
+    BG [label="extension/background.ts", fillcolor="#ffedd5"];
+  }
+
+  TB -> CAL;
+  TB -> HYBRID;
+  TB -> BROWSER;
+  CLIP -> CLIPBOARD;
+  USER -> COMPANION;
+  HYBRID -> NATIVE;
+  HYBRID -> COMPANION;
+
+  CAL -> CALPORT [label="implements", style=dashed];
+  HYBRID -> PRESENTPORT [label="implements", style=dashed];
+  BROWSER -> BROWSERPORT [label="implements", style=dashed];
+  CLIPBOARD -> CLIPPORT [label="implements", style=dashed];
+
+  HANDLE -> CALPORT;
+  HANDLE -> DETECT;
+  HANDLE -> RESOLVE;
+  HANDLE -> PRESENTPORT;
+  JOIN -> BROWSERPORT;
+  COPY -> CLIPPORT;
+
+  DETECT -> REGISTRY;
+  REGISTRY -> PROVIDER;
+  DETECT -> EVENT;
+  DETECT -> RESULT;
+  RESOLVE -> LINK;
+
+  BG -> ROOT;
+  ROOT -> CAL [label="wires"];
+  ROOT -> HYBRID [label="wires"];
+  ROOT -> HANDLE [label="wires"];
+  ROOT -> REGISTRY [label="wires"];
+}
