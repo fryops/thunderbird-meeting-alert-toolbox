@@ -53,6 +53,93 @@ function toIcalUtc(date) {
   );
 }
 
+function itemLooksLikeOnlineMeeting(item) {
+  try {
+    const chunks = [];
+    if (item.title) chunks.push(String(item.title));
+    for (const prop of ["DESCRIPTION", "LOCATION", "URL"]) {
+      try {
+        const value = item.getProperty?.(prop);
+        if (value) chunks.push(String(value));
+      } catch {
+        // ignore
+      }
+    }
+    const text = chunks.join("\n");
+    if (!/(https?:\/\/|zoommtg:\/\/)/i.test(text)) return false;
+    return (
+      /zoom\.us\/(?:j|my)\//i.test(text) ||
+      /zoommtg:\/\//i.test(text) ||
+      /teams\.microsoft\.com\//i.test(text) ||
+      /meet\.google\.com\//i.test(text) ||
+      /webex\.com\//i.test(text) ||
+      /gotomeeting\.com\//i.test(text) ||
+      /goto\.com\//i.test(text) ||
+      /slack\.com\//i.test(text) ||
+      /discord(?:app)?\.com\//i.test(text) ||
+      /jit\.si\//i.test(text)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function peekNativeAlarmWindow() {
+  return Services.wm.getMostRecentWindow("Calendar:AlarmWindow");
+}
+
+/**
+ * Prevent Thunderbird's built-in Calendar:AlarmWindow from opening for
+ * online-meeting events. Our extension presents its own companion UI instead.
+ */
+function patchNativeAlarmMonitor() {
+  try {
+    const monitor = Cc["@mozilla.org/calendar/alarm-monitor;1"]
+      .getService(Ci.calIAlarmServiceObserver)
+      .wrappedJSObject;
+    if (!monitor || typeof monitor.onAlarm !== "function") return;
+    if (monitor.__meetingReminderJoinPatched) return;
+
+    const original = monitor.onAlarm.bind(monitor);
+    monitor.onAlarm = function patchedOnAlarm(item, alarm) {
+      if (alarm?.action === "DISPLAY" && itemLooksLikeOnlineMeeting(item)) {
+        console.info(
+          "[meeting-reminder-join] suppressed native alarm UI for meeting item",
+          item?.id
+        );
+        return;
+      }
+      return original(item, alarm);
+    };
+    monitor.__meetingReminderJoinPatched = true;
+    console.info("[meeting-reminder-join] patched CalAlarmMonitor to suppress meeting alarms");
+  } catch (error) {
+    console.warn(
+      "[meeting-reminder-join] unable to patch CalAlarmMonitor:",
+      extensionErrorMessage(error)
+    );
+  }
+}
+
+async function dismissAlarmsForItem(item) {
+  const alarmsvc = Cc["@mozilla.org/calendar/alarm-service;1"].getService(
+    Ci.calIAlarmService
+  );
+  // Current dismissAlarm JS implementation takes the item only.
+  await alarmsvc.dismissAlarm(item);
+
+  const win = peekNativeAlarmWindow();
+  if (win) {
+    try {
+      if (typeof win.closeIfEmpty === "function") {
+        win.closeIfEmpty();
+      }
+    } catch {
+      // ignore
+    }
+  }
+}
+
 function alarmIsDue(item, sinceMs, untilMs) {
   const alarms = item.getAlarms?.() ?? [];
   if (alarms.length === 0) {
@@ -81,6 +168,7 @@ function alarmIsDue(item, sinceMs, untilMs) {
 this.calendar_items = class extends ExtensionAPI {
   onStartup() {
     const root = registerExperimentResources(this.extension);
+    patchNativeAlarmMonitor();
     console.info(
       `[meeting-reminder-join] calendar.items onStartup v${this.extension.manifest.version} resource://${root}/`
     );
@@ -123,8 +211,50 @@ this.calendar_items = class extends ExtensionAPI {
               ok: true,
               version: query,
               api: "calendar.items",
-              build: "due-v1",
+              build: "due-v2-suppress",
+              nativeMonitorPatched: true,
             };
+          },
+
+          async dismissAlarms(props = {}) {
+            try {
+              if (!props.calendarId || !props.id) {
+                throw new ExtensionError(
+                  "dismissAlarms requires calendarId and id"
+                );
+              }
+              const calendar = getResolvedCalendarById(
+                context.extension,
+                props.calendarId
+              );
+              let item = await calendar.getItem(props.id);
+              if (!item) {
+                throw new ExtensionError(
+                  `Could not find item ${props.calendarId}/${props.id}`
+                );
+              }
+
+              if (props.instance) {
+                try {
+                  const recId = cal.createDateTime(props.instance);
+                  const occurrence = item.recurrenceInfo?.getOccurrenceFor?.(recId);
+                  if (occurrence) item = occurrence;
+                } catch (error) {
+                  console.warn(
+                    "[meeting-reminder-join] dismissAlarms instance resolve failed:",
+                    extensionErrorMessage(error)
+                  );
+                }
+              }
+
+              await dismissAlarmsForItem(item);
+              return { ok: true };
+            } catch (error) {
+              if (error instanceof ExtensionError) throw error;
+              throw new ExtensionError(
+                `dismissAlarms failed: ${extensionErrorMessage(error)}`
+              );
+            }
           },
 
           /**

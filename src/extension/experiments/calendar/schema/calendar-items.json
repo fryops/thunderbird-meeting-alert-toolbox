@@ -70,6 +70,22 @@
         "parameters": []
       },
       {
+        "name": "dismissAlarms",
+        "async": true,
+        "type": "function",
+        "parameters": [
+          {
+            "type": "object",
+            "name": "options",
+            "properties": {
+              "calendarId": { "type": "string" },
+              "id": { "type": "string" },
+              "instance": { "type": "string", "optional": true }
+            }
+          }
+        ]
+      },
+      {
         "name": "findDueReminders",
         "async": true,
         "type": "function",

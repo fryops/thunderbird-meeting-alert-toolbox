@@ -36,6 +36,11 @@ type ExtensionApi = {
         rangeStart?: string;
         rangeEnd?: string;
       }) => Promise<unknown>;
+      dismissAlarms?: (props: {
+        calendarId: string;
+        id: string;
+        instance?: string;
+      }) => Promise<unknown>;
       query?: (props: {
         type?: "event" | "task";
         rangeStart?: string;
