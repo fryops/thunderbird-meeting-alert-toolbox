@@ -263,7 +263,9 @@ this.calendar_items = class extends ExtensionAPI {
            */
           async findDueReminders(props = {}) {
             try {
-              const sinceMs = Date.parse(props.since ?? "") || Date.now() - 60_000;
+              // Match ReminderWatcher CATCHUP_LOOKBACK_MS (30m) so a missing
+              // `since` still recovers reminders missed during machine sleep.
+              const sinceMs = Date.parse(props.since ?? "") || Date.now() - 30 * 60_000;
               const untilMs = Date.parse(props.until ?? "") || Date.now() + 15_000;
               const rangeStartIcal =
                 props.rangeStart || toIcalUtc(new Date(sinceMs - 2 * 60 * 60_000));

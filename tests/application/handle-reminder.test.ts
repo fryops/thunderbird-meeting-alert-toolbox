@@ -44,7 +44,7 @@ describe("HandleReminder", () => {
     expect(presenter.hiddenCalls).toBe(0);
   });
 
-  it("hides the presenter when no meeting link exists", async () => {
+  it("stays silent when no meeting link exists without closing an open companion", async () => {
     const calendar = new FakeCalendarRepository([
       {
         id: "e2",
@@ -59,7 +59,29 @@ describe("HandleReminder", () => {
     await handle.execute("e2");
 
     expect(presenter.presented).toHaveLength(0);
-    expect(presenter.hiddenCalls).toBe(1);
+    expect(presenter.hiddenCalls).toBe(0);
+  });
+
+  it("does not close a meeting companion when a later non-meeting due event is handled", async () => {
+    const calendar = new FakeCalendarRepository([]);
+    const presenter = new FakeReminderPresenter();
+    const handle = createHandleReminder(calendar, presenter);
+
+    await handle.executeFromEvent({
+      id: "meeting",
+      title: "Standup",
+      start: new Date("2026-07-10T20:00:00Z"),
+      location: "https://meet.google.com/abc-defg-hij",
+    });
+    await handle.executeFromEvent({
+      id: "focus",
+      title: "Focus time",
+      start: new Date("2026-07-10T20:00:00Z"),
+      location: "Conference Room A",
+    });
+
+    expect(presenter.presented).toHaveLength(1);
+    expect(presenter.hiddenCalls).toBe(0);
   });
 
   it("stays silent when the event is missing", async () => {

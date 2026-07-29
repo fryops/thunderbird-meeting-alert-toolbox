@@ -34,13 +34,19 @@ export type ReminderWatcherApi = {
 
 const POLL_ALARM_NAME = "meeting-reminder-join-poll";
 const POLL_MINUTES = 1;
+/**
+ * After hibernation/sleep the MV3 background often restarts. A 60s lookback
+ * misses reminders that fired while the machine was asleep (e.g. 15m-before
+ * while waking 1m before the meeting). Cover common reminder lead times.
+ */
+export const CATCHUP_LOOKBACK_MS = 30 * 60_000;
 
 /**
  * MV3 background pages sleep and can drop calendar.items.onAlarm observers.
  * This watcher wakes periodically via browser.alarms and checks for due meeting reminders.
  */
 export class ReminderWatcher {
-  private lastPollAt = new Date(Date.now() - 60_000);
+  private lastPollAt = new Date(Date.now() - CATCHUP_LOOKBACK_MS);
   private readonly presentedKeys = new Set<string>();
 
   constructor(
