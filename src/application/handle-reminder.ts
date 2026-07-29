@@ -37,7 +37,9 @@ export class HandleReminder {
     const detection = this.detect.execute(event);
     const action = this.resolve.execute(event, detection);
     if (!action) {
-      await this.presenter.hide();
+      // Stay invisible for non-meeting events. Do not hide() — ReminderWatcher
+      // may scan many due items in one poll, and closing would tear down a
+      // companion just opened for a different meeting event.
       return;
     }
 
