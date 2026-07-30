@@ -10,6 +10,11 @@ type AlarmApi = {
   };
 };
 
+type StorageArea = {
+  get?: (keys?: string | string[] | Record<string, unknown> | null) => Promise<Record<string, unknown>>;
+  set?: (items: Record<string, unknown>) => Promise<void>;
+};
+
 type CalendarItemsApi = {
   ping?: () => Promise<unknown>;
   findDueReminders?: (props: {
@@ -29,15 +34,21 @@ type CalendarItemsApi = {
 
 export type ReminderWatcherApi = {
   alarms?: AlarmApi;
+  storage?: {
+    local?: StorageArea;
+  };
   calendar?: { items?: CalendarItemsApi };
 };
 
 const POLL_ALARM_NAME = "meeting-reminder-join-poll";
 const POLL_MINUTES = 1;
+const LAST_POLL_STORAGE_KEY = "reminderWatcherLastPollAt";
 /**
  * After hibernation/sleep the MV3 background often restarts. A 60s lookback
  * misses reminders that fired while the machine was asleep (e.g. 15m-before
  * while waking 1m before the meeting). Cover common reminder lead times.
+ *
+ * Only used when no persisted lastPollAt is available.
  */
 export const CATCHUP_LOOKBACK_MS = 30 * 60_000;
 
@@ -48,6 +59,7 @@ export const CATCHUP_LOOKBACK_MS = 30 * 60_000;
 export class ReminderWatcher {
   private lastPollAt = new Date(Date.now() - CATCHUP_LOOKBACK_MS);
   private readonly presentedKeys = new Set<string>();
+  private restoredLastPoll = false;
 
   constructor(
     private readonly api: ReminderWatcherApi,
@@ -94,6 +106,8 @@ export class ReminderWatcher {
         "ReminderWatcher: calendar.items.ping missing — quit Thunderbird completely and relaunch with -purgecaches so experiment APIs reload.",
       );
     }
+
+    await this.restoreLastPollAt();
 
     const now = new Date();
     const from = this.lastPollAt;
@@ -181,6 +195,7 @@ export class ReminderWatcher {
     }
 
     this.lastPollAt = now;
+    await this.persistLastPollAt(now);
     this.prunePresentedKeys(now);
     console.info("ReminderWatcher poll complete", {
       reason,
@@ -188,6 +203,41 @@ export class ReminderWatcher {
       itemCount: list.length,
       dueCount,
     });
+  }
+
+  private async restoreLastPollAt(): Promise<void> {
+    if (this.restoredLastPoll) return;
+    this.restoredLastPoll = true;
+
+    const area = this.api.storage?.local;
+    if (!area?.get) return;
+
+    try {
+      const result = await area.get(LAST_POLL_STORAGE_KEY);
+      const raw = result[LAST_POLL_STORAGE_KEY];
+      if (typeof raw !== "string") return;
+      const restored = Date.parse(raw);
+      if (Number.isNaN(restored)) return;
+
+      // Ignore absurdly old cursors; keep catch-up bounded.
+      const oldest = Date.now() - CATCHUP_LOOKBACK_MS;
+      this.lastPollAt = new Date(Math.max(restored, oldest));
+      console.info("ReminderWatcher restored lastPollAt", {
+        lastPollAt: this.lastPollAt.toISOString(),
+      });
+    } catch (error) {
+      console.warn("ReminderWatcher failed to restore lastPollAt", error);
+    }
+  }
+
+  private async persistLastPollAt(now: Date): Promise<void> {
+    const area = this.api.storage?.local;
+    if (!area?.set) return;
+    try {
+      await area.set({ [LAST_POLL_STORAGE_KEY]: now.toISOString() });
+    } catch (error) {
+      console.warn("ReminderWatcher failed to persist lastPollAt", error);
+    }
   }
 
   private prunePresentedKeys(now: Date): void {

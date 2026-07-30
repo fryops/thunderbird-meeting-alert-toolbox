@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Meeting Reminder Join",
-  "version": "0.1.8",
+  "version": "0.1.10",
   "description": "Adds meeting join actions to Thunderbird calendar reminders.",
   "permissions": [
     "alarms",
     "clipboardWrite",
     "notifications",
+    "storage",
     "tabs"
   ],
   "icons": {

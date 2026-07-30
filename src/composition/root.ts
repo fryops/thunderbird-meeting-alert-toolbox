@@ -5,6 +5,7 @@ import { ThunderbirdClipboardService } from "../adapters/thunderbird/clipboard-s
 import { HybridReminderPresenter } from "../adapters/thunderbird/hybrid-reminder-presenter.js";
 import { NativeReminderPresenter } from "../adapters/thunderbird/native-reminder-presenter.js";
 import { ThunderbirdNativeAlarmSuppressor } from "../adapters/thunderbird/native-alarm-suppressor.js";
+import { SessionReminderPresentationStore } from "../adapters/thunderbird/session-reminder-presentation-store.js";
 import { CopyMeetingLink } from "../application/copy-meeting-link.js";
 import { DetectMeetingLink } from "../application/detect-meeting-link.js";
 import { HandleReminder } from "../application/handle-reminder.js";
@@ -29,7 +30,8 @@ export function createApp(
   >[0] &
     ConstructorParameters<typeof ThunderbirdBrowserLauncher>[0] &
     ConstructorParameters<typeof CompanionReminderPresenter>[0] &
-    ConstructorParameters<typeof ThunderbirdNativeAlarmSuppressor>[0];
+    ConstructorParameters<typeof ThunderbirdNativeAlarmSuppressor>[0] &
+    ConstructorParameters<typeof SessionReminderPresentationStore>[0];
 
   const registry = new MeetingProviderRegistry(createDefaultProviders());
   const detect = new DetectMeetingLink(registry);
@@ -42,6 +44,7 @@ export function createApp(
     new CompanionReminderPresenter(thunderbirdApi),
   );
   const nativeAlarms = new ThunderbirdNativeAlarmSuppressor(thunderbirdApi);
+  const presentations = new SessionReminderPresentationStore(thunderbirdApi);
 
   return {
     handleReminder: new HandleReminder(
@@ -49,6 +52,7 @@ export function createApp(
       detect,
       resolve,
       presenter,
+      presentations,
       nativeAlarms,
     ),
     joinMeeting: new JoinMeeting(browser),

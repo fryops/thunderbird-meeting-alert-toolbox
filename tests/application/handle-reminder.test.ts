@@ -4,23 +4,27 @@ import { HandleReminder } from "../../src/application/handle-reminder.js";
 import { ResolveReminderAction } from "../../src/application/resolve-reminder-action.js";
 import { FakeCalendarRepository } from "../../src/adapters/fake/fake-calendar-repository.js";
 import { FakeReminderPresenter } from "../../src/adapters/fake/fake-reminder-presenter.js";
+import { FakeReminderPresentationStore } from "../../src/adapters/fake/fake-reminder-presentation-store.js";
 import { MeetingProviderRegistry } from "../../src/domain/meeting-provider-registry.js";
 import { createDefaultProviders } from "../../src/domain/providers/index.js";
 import type { NativeAlarmSuppressor } from "../../src/ports/native-alarm-suppressor.js";
+import type { ReminderPresentationStore } from "../../src/ports/reminder-presentation-store.js";
 
 function createHandleReminder(
   calendar: FakeCalendarRepository,
   presenter: FakeReminderPresenter,
-  nativeAlarms?: NativeAlarmSuppressor,
-  debounceMs?: number,
+  options: {
+    nativeAlarms?: NativeAlarmSuppressor;
+    store?: ReminderPresentationStore;
+  } = {},
 ): HandleReminder {
   return new HandleReminder(
     calendar,
     new DetectMeetingLink(new MeetingProviderRegistry(createDefaultProviders())),
     new ResolveReminderAction(),
     presenter,
-    nativeAlarms,
-    debounceMs,
+    options.store ?? new FakeReminderPresentationStore(),
+    options.nativeAlarms,
   );
 }
 
@@ -131,16 +135,13 @@ describe("HandleReminder", () => {
     const calendar = new FakeCalendarRepository([]);
     const presenter = new FakeReminderPresenter();
     const suppressed: string[] = [];
-    const handle = createHandleReminder(
-      calendar,
-      presenter,
-      {
+    const handle = createHandleReminder(calendar, presenter, {
+      nativeAlarms: {
         suppressForEvent: async (event) => {
           suppressed.push(event.id);
         },
       },
-      60_000,
-    );
+    });
 
     const start = new Date("2026-07-10T20:00:00Z");
     const url = "https://zoom.us/j/555";
@@ -169,5 +170,88 @@ describe("HandleReminder", () => {
 
     expect(presenter.presented).toHaveLength(1);
     expect(suppressed).toEqual(["calendar-a", "calendar-b", "calendar-a"]);
+  });
+
+  it("skips re-present after a successful show, including across HandleReminder restarts", async () => {
+    const calendar = new FakeCalendarRepository([]);
+    const store = new FakeReminderPresentationStore();
+    const firstPresenter = new FakeReminderPresenter();
+    const first = createHandleReminder(calendar, firstPresenter, { store });
+
+    const event = {
+      id: "standup",
+      title: "Standup",
+      start: new Date("2026-07-10T20:00:00Z"),
+      location: "https://zoom.us/j/777",
+    };
+
+    await first.executeFromEvent(event);
+    expect(firstPresenter.presented).toHaveLength(1);
+
+    const secondPresenter = new FakeReminderPresenter();
+    const second = createHandleReminder(calendar, secondPresenter, { store });
+    await second.executeFromEvent(event);
+
+    expect(secondPresenter.presented).toHaveLength(0);
+  });
+
+  it("still presents a never-handled meeting after it has started", async () => {
+    const calendar = new FakeCalendarRepository([]);
+    const presenter = new FakeReminderPresenter();
+    const handle = createHandleReminder(calendar, presenter);
+
+    await handle.executeFromEvent({
+      id: "late",
+      title: "Late catch-up",
+      start: new Date(Date.now() - 60_000),
+      location: "https://meet.google.com/abc-defg-hij",
+    });
+
+    expect(presenter.presented).toHaveLength(1);
+  });
+
+  it("treats different start times as independent occurrences", async () => {
+    const calendar = new FakeCalendarRepository([]);
+    const presenter = new FakeReminderPresenter();
+    const handle = createHandleReminder(calendar, presenter);
+    const url = "https://zoom.us/j/888";
+
+    await handle.executeFromEvent({
+      id: "week-1",
+      title: "Weekly",
+      start: new Date("2026-07-10T20:00:00Z"),
+      location: url,
+    });
+    await handle.executeFromEvent({
+      id: "week-2",
+      title: "Weekly",
+      start: new Date("2026-07-17T20:00:00Z"),
+      location: url,
+    });
+
+    expect(presenter.presented).toHaveLength(2);
+  });
+
+  it("does not mark handled when present throws, so a retry can show", async () => {
+    const calendar = new FakeCalendarRepository([]);
+    const store = new FakeReminderPresentationStore();
+    const failing = new FakeReminderPresenter();
+    failing.present = async () => {
+      throw new Error("window create failed");
+    };
+    const first = createHandleReminder(calendar, failing, { store });
+    const event = {
+      id: "retry",
+      title: "Retry me",
+      start: new Date("2026-07-10T20:00:00Z"),
+      location: "https://zoom.us/j/999",
+    };
+
+    await expect(first.executeFromEvent(event)).rejects.toThrow("window create failed");
+
+    const presenter = new FakeReminderPresenter();
+    const second = createHandleReminder(calendar, presenter, { store });
+    await second.executeFromEvent(event);
+    expect(presenter.presented).toHaveLength(1);
   });
 });

@@ -9,6 +9,7 @@ describe("extension manifest", () => {
     ) as {
       background?: unknown;
       experiment_apis?: { calendar_items?: unknown };
+      permissions?: string[];
     };
 
     expect(manifest.background).toEqual({
@@ -16,5 +17,6 @@ describe("extension manifest", () => {
       type: "module",
     });
     expect(manifest.experiment_apis?.calendar_items).toBeTruthy();
+    expect(manifest.permissions).toContain("storage");
   });
 });
