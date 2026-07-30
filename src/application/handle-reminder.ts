@@ -3,12 +3,10 @@ import type { DetectMeetingLink } from "./detect-meeting-link.js";
 import type { ResolveReminderAction } from "./resolve-reminder-action.js";
 import type { CalendarRepository } from "../ports/calendar-repository.js";
 import type { NativeAlarmSuppressor } from "../ports/native-alarm-suppressor.js";
+import type { ReminderPresentationStore } from "../ports/reminder-presentation-store.js";
 import type { ReminderPresenter } from "../ports/reminder-presenter.js";
 
-const DEFAULT_DEBOUNCE_MS = 45 * 60_000;
-
 export class HandleReminder {
-  private readonly recentlyPresented = new Map<string, number>();
   private readonly inFlight = new Set<string>();
 
   constructor(
@@ -16,8 +14,8 @@ export class HandleReminder {
     private readonly detect: DetectMeetingLink,
     private readonly resolve: ResolveReminderAction,
     private readonly presenter: ReminderPresenter,
+    private readonly presentations: ReminderPresentationStore,
     private readonly nativeAlarms?: NativeAlarmSuppressor,
-    private readonly debounceMs: number = DEFAULT_DEBOUNCE_MS,
   ) {}
 
   async execute(eventId: string): Promise<void> {
@@ -54,15 +52,11 @@ export class HandleReminder {
       return;
     }
 
-    const last = this.recentlyPresented.get(key);
-    const now = Date.now();
-    if (last !== undefined && now - last < this.debounceMs) {
-      console.info("Skipping reminder present; recently shown", {
+    if (await this.presentations.isHandled(key)) {
+      console.info("Skipping reminder present; already handled", {
         eventId: event.id,
         title: event.title,
-        ageMs: now - last,
       });
-      // Still try to suppress native UI if a race left it up.
       await this.suppressNative(event);
       return;
     }
@@ -70,9 +64,11 @@ export class HandleReminder {
     this.inFlight.add(key);
     try {
       await this.presenter.present(action);
-      this.recentlyPresented.set(key, now);
+      await this.presentations.markHandled(key, {
+        start: action.start,
+        end: action.end,
+      });
       await this.suppressNative(event);
-      this.prune(now);
     } finally {
       this.inFlight.delete(key);
     }
@@ -84,12 +80,6 @@ export class HandleReminder {
       await this.nativeAlarms.suppressForEvent(event);
     } catch (error) {
       console.warn("Native alarm suppress failed", error);
-    }
-  }
-
-  private prune(now: number): void {
-    for (const [key, at] of this.recentlyPresented) {
-      if (now - at > this.debounceMs * 2) this.recentlyPresented.delete(key);
     }
   }
 }

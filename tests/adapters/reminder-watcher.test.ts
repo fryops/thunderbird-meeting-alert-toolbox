@@ -109,4 +109,51 @@ END:VEVENT`;
       title: "Standup",
     });
   });
+
+  it("reuses persisted lastPollAt so a background restart does not re-scan 30 minutes", async () => {
+    const storageData: Record<string, unknown> = {
+      reminderWatcherLastPollAt: "2026-07-22T17:59:00.000Z",
+    };
+    const findDueReminders = vi.fn<(props: {
+      since?: string;
+      until?: string;
+    }) => Promise<unknown[]>>(async () => []);
+    const handleReminder = {
+      executeFromEvent: vi.fn(async () => undefined),
+    } as unknown as HandleReminder;
+
+    const watcher = new ReminderWatcher(
+      {
+        alarms: {
+          create: vi.fn(async () => undefined),
+          clear: vi.fn(async () => true),
+          onAlarm: { addListener: vi.fn() },
+        },
+        storage: {
+          local: {
+            get: async (keys) => {
+              const key = typeof keys === "string" ? keys : "";
+              return key in storageData ? { [key]: storageData[key] } : {};
+            },
+            set: async (items) => {
+              Object.assign(storageData, items);
+            },
+          },
+        },
+        calendar: {
+          items: {
+            ping: vi.fn(async () => ({ ok: true })),
+            findDueReminders,
+          },
+        },
+      },
+      handleReminder,
+    );
+
+    await watcher.start();
+
+    const sinceMs = Date.parse(findDueReminders.mock.calls[0]?.[0]?.since ?? "");
+    expect(sinceMs).toBe(Date.parse("2026-07-22T17:59:00.000Z"));
+    expect(storageData.reminderWatcherLastPollAt).toBe("2026-07-22T18:00:00.000Z");
+  });
 });
